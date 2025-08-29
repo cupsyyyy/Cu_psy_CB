@@ -217,14 +217,23 @@ class AimTracker:
             print("[perform_detection ROI error]", e)
 
         if not detections:
+            # Sans détection → garder le head position avec offset
             results.append((headx_base, heady_base, (x1_roi, y1_roi, x2_roi, y2_roi)))
         else:
             for det in detections:
                 x, y, w, h = det["bbox"]
                 cv2.rectangle(img, (x1_roi + x, y1_roi + y), (x1_roi + x + w, y1_roi + y + h), (0, 255, 0), 2)
+
+                # Position détection brute
                 headx_det = x1_roi + x + w / 2
                 heady_det = y1_roi + y + h / 2
+
+                # Application de l’offset aussi sur la détection
+                headx_det += effective_width * (offsetX / 100)
+                heady_det += effective_height * (offsetY / 100)
+
                 results.append((headx_det, heady_det, (x1_roi + x, y1_roi + y, w, h)))
+
         return results
 
     def _draw_body(self, img, x1, y1, x2, y2, conf):
