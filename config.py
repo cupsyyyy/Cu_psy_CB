@@ -20,7 +20,6 @@ class Config:
         self.selected_2_tb = 2
         self.makcu_connected = False
         self.makcu_status_msg = "Disconnected"  # Updated to reflect device type
-        self.aim_humanization = 0
         self.in_game_sens = 0.235
         self.mouse_dpi = 800
         # --- Aimbot Mode ---
