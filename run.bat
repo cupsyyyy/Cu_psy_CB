@@ -29,6 +29,6 @@ if exist requirements.txt (
 
 :: Lance le script principal
 echo [*] Starting CUPSY_CB
-python src\Eventuri-AI.py
+python main.py
 
 pause
