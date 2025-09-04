@@ -1,0 +1,16 @@
+{
+    "normal_x_speed": 400.0799999999999,
+    "normal_y_speed": 220.08899999999971,
+    "normalsmooth": 1.1,
+    "normalsmoothfov": 11.440000000000001,
+    "mouse_dpi": 800,
+    "fovsize": 25.93999999999994,
+    "tbfovsize": 2.5,
+    "tbdelay": 0.19999999999999996,
+    "rage_mode": false,
+    "in_game_sens": 0.235,
+    "color": "purple",
+    "mode": "Normal",
+    "enableaim": true,
+    "enabletb": true
+}
