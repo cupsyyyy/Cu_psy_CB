@@ -65,7 +65,7 @@ CUPSY_CB/
 ## Notes
 
 - Make sure **Python 3.12.0+** is installed.  
-- The virtual environment (`venv`) is recommended to avoid dependency conflicts.  
+- The virtual environment (`venv`) is needed to avoid dependency conflicts.  
 - OBS must be configured with the **NDI plugin** to work properly.  
 - Always edit the configuration file before running the bot for proper behavior.
 
