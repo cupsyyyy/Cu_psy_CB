@@ -33,15 +33,6 @@ cd Eventuri-AI
 2. **Start the run.bat**
 
 
-
-## Configuration
-
-1. Open `configs/BEST_CONFIG.json`.  
-2. Set your preferred **colors**, **triggers**, and **behavior options**.  
-3. Save the file.
-
----
-
 ## Usage
 
 ### Run via Python:
