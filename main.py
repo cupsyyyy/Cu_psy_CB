@@ -6,6 +6,8 @@ import math
 import numpy as np
 import cv2
 import tkinter as tk
+import os
+import json
 
 from cyndilib.finder import Finder
 from cyndilib.receiver import Receiver
@@ -35,6 +37,7 @@ class AimTracker:
         self.normal_y_speed = float(getattr(config, "normal_y_speed", 0.5))
         self.normalsmooth = float(getattr(config, "normalsmooth", 10))
         self.normalsmoothfov = float(getattr(config, "normalsmoothfov", 10))
+        self.mouse_dpi = float(getattr(config, "mouse_dpi", 800))
         self.fovsize = float(getattr(config, "fovsize", 300))
         self.tbfovsize = float(getattr(config, "tbfovsize", 70))
         self.tbdelay = float(getattr(config, "tbdelay", 0.08))
@@ -256,16 +259,11 @@ class AimTracker:
         dy = cy - center_y
 
         sens = float(getattr(config, "in_game_sens", self.in_game_sens))
-        dpi = float(getattr(config, "mouse_dpi", 800.0))
-        game = getattr(config, "game_profile", None) or "VALORANT"
+        dpi = float(getattr(config, "mouse_dpi", self.mouse_dpi))
+       
 
-        cm_per_rev_base = {
-            "R6": 37.88,
-            "COD": 34.54,
-            "VALORANT": 54.54,
-            "CSGO": 52.49,
-        }
-        cm_per_rev = cm_per_rev_base.get(game, cm_per_rev_base["R6"]) / max(sens, 0.01)
+        cm_per_rev_base = 54.54
+        cm_per_rev = cm_per_rev_base / max(sens, 0.01)
 
         count_per_cm = dpi / 2.54
         deg_per_count = 360.0 / (cm_per_rev * count_per_cm)
@@ -290,7 +288,7 @@ class AimTracker:
 
             # Triggerbot
             try:
-                if getattr(config, "enabletb", False) and is_button_pressed(getattr(config, "selected_tb_btn", None)):
+                if getattr(config, "enabletb", False) and is_button_pressed(getattr(config, "selected_tb_btn", None)) or is_button_pressed(getattr(config, "selected_2_tb", None)):
                     cx0, cy0 = int(frame.xres // 2), int(frame.yres // 2)
                     r = int(getattr(config, "tbfovsize", self.tbfovsize))
                     x1, y1 = max(cx0 - r, 0), max(cy0 - r, 0)
@@ -320,6 +318,8 @@ class AimTracker:
         elif mode == "Silent":
             dx_raw = int(dx)
             dy_raw = int(dy)
+            dx_raw *= self.normal_x_speed
+            dy_raw *= self.normal_y_speed
             threading.Thread(target=threaded_silent_move, args=(self.controller, dx_raw, dy_raw), daemon=True).start()
 
 
@@ -328,6 +328,11 @@ class ViewerApp(ctk.CTk):
         super().__init__()
         self.title("CUPSY COLORBOT")
         self.geometry("400x700")
+
+        # Dicos pour MAJ UI <-> config
+        self._slider_widgets = {}   # key -> {"slider": widget, "label": widget, "min":..., "max":...}
+        self._checkbox_vars = {}    # key -> tk.BooleanVar
+        self._option_widgets = {}   # key -> CTkOptionMenu
 
         # NDI
         self.finder = Finder()
@@ -346,7 +351,7 @@ class ViewerApp(ctk.CTk):
         self.source_queue = queue.Queue()
         self.after(100, self._process_source_updates)
         # enlève la barre native
-        self.overrideredirect(True)
+       
 
         # barre custom
         self.title_bar = ctk.CTkFrame(self, height=30, corner_radius=0)
@@ -355,7 +360,6 @@ class ViewerApp(ctk.CTk):
         self.title_label = ctk.CTkLabel(self.title_bar, text="CUPSY CB", anchor="w")
         self.title_label.pack(side="left", padx=10)
 
-
         # bouton fermer
         self.close_btn = ctk.CTkButton(self.title_bar, text="X", width=25, command=self.destroy)
         self.close_btn.pack(side="right", padx=2)
@@ -363,6 +367,7 @@ class ViewerApp(ctk.CTk):
         # rendre la barre draggable
         self.title_bar.bind("<Button-1>", self.start_move)
         self.title_bar.bind("<B1-Motion>", self.do_move)
+        
         # Tracker
         self.tracker = AimTracker(app=self, target_fps=80)
 
@@ -372,17 +377,89 @@ class ViewerApp(ctk.CTk):
         self.tab_general = self.tabview.add("⚙️ Général")
         self.tab_aimbot = self.tabview.add("🎯 Aimbot")
         self.tab_tb = self.tabview.add("🔫 Triggerbot")
-    
-    
+        self.tab_config = self.tabview.add("💾 Config")
 
         self._build_general_tab()
         self._build_aimbot_tab()
         self._build_tb_tab()
+        self._build_config_tab()
 
+        
         # Status polling
         self.after(500, self._update_connection_status_loop)
+        self._load_initial_config()
+
+    # ---------- Helpers de mapping UI ----------
+    def _register_slider(self, key, slider, label, vmin, vmax, is_float):
+        self._slider_widgets[key] = {"slider": slider, "label": label, "min": vmin, "max": vmax, "is_float": is_float}
+
+    def _load_initial_config(self):
+        try:
+            import json, os
+            from detection import reload_model
+            if os.path.exists("configs/default.json"):
+                with open("configs/default.json", "r") as f:
+                    data = json.load(f)
+
+                self._apply_settings(data)
 
 
+            else:
+                print("doesn't exist")
+        except Exception as e:
+            print("Impossible de charger la config initiale:", e)
+
+
+
+
+    def _set_slider_value(self, key, value):
+        if key not in self._slider_widgets:
+            return
+        w = self._slider_widgets[key]
+        vmin, vmax = w["min"], w["max"]
+        is_float = w["is_float"]
+        # Clamp
+        try:
+            v = float(value) if is_float else int(round(float(value)))
+        except Exception:
+            return
+        v = max(vmin, min(v, vmax))
+        w["slider"].set(v)
+        # Rafraîchir label
+        txt = f"{key.replace('_',' ').title()}: {v:.2f}" if is_float else f"{key.replace('_',' ').title()}: {int(v)}"
+        # On garde le libellé humain (X Speed etc.) si déjà présent
+        current = w["label"].cget("text")
+        prefix = current.split(":")[0] if ":" in current else txt.split(":")[0]
+        w["label"].configure(text=f"{prefix}: {v:.2f}" if is_float else f"{prefix}: {int(v)}")
+
+    def _set_checkbox_value(self, key, value_bool):
+        var = self._checkbox_vars.get(key)
+        if var is not None:
+            var.set(bool(value_bool))
+
+    def _set_option_value(self, key, value_str):
+        menu = self._option_widgets.get(key)
+        if menu is not None and value_str is not None:
+            menu.set(str(value_str))
+
+    # -------------- Tab Config --------------
+    def _build_config_tab(self):
+        os.makedirs("configs", exist_ok=True)
+
+        ctk.CTkLabel(self.tab_config, text="Choisir une config:").pack(pady=5, anchor="w")
+
+        self.config_option = ctk.CTkOptionMenu(self.tab_config, values=[], command=self._on_config_selected)
+        self.config_option.pack(pady=5, fill="x")
+
+        ctk.CTkButton(self.tab_config, text="💾 Sauvegarder", command=self._save_config).pack(pady=10, fill="x")
+        ctk.CTkButton(self.tab_config, text="💾 Nouvelle config", command=self._save_new_config).pack(pady=5, fill="x")
+        ctk.CTkButton(self.tab_config, text="📂 Charger config", command=self._load_selected_config).pack(pady=5, fill="x")
+
+
+        self.config_log = ctk.CTkTextbox(self.tab_config, height=120)
+        self.config_log.pack(pady=10, fill="both", expand=True)
+
+        self._refresh_config_list()
 
     def start_move(self, event):
         self._x = event.x
@@ -392,7 +469,146 @@ class ViewerApp(ctk.CTk):
         x = self.winfo_pointerx() - self._x
         y = self.winfo_pointery() - self._y
         self.geometry(f"+{x}+{y}")
-        
+
+    def _get_current_settings(self):
+        return {
+            "normal_x_speed": getattr(config, "normal_x_speed", 0.5),
+            "normal_y_speed": getattr(config, "normal_y_speed", 0.5),
+            "normalsmooth": getattr(config, "normalsmooth", 10),
+            "normalsmoothfov": getattr(config, "normalsmoothfov", 10),
+            "mouse_dpi" : getattr(config, "mouse_dpi", 800),
+            "fovsize": getattr(config, "fovsize", 300),
+            "tbfovsize": getattr(config, "tbfovsize", 70),
+            "tbdelay": getattr(config, "tbdelay", 0.08),
+            "rage_mode": getattr(config, "rage_mode", False),
+            "in_game_sens": getattr(config, "in_game_sens", 7),
+            "color": getattr(config, "color", "yellow"),
+            "mode": getattr(config, "mode", "Normal"),
+            "enableaim": getattr(config, "enableaim", False),
+            "enabletb": getattr(config, "enabletb", False),
+        }
+
+    def _apply_settings(self, data, config_name=None):
+        """
+        Applique un dictionnaire de settings sur le config global, le tracker et l'UI.
+        Recharge le modèle si nécessaire.
+        """
+        try:
+            # --- Appliquer sur config global ---
+            for k, v in data.items():
+                setattr(config, k, v)
+
+            # --- Appliquer sur le tracker si l'attribut existe ---
+            for k, v in data.items():
+                if hasattr(self.tracker, k):
+                    setattr(self.tracker, k, v)
+
+            # --- Mettre à jour les sliders ---
+            for k, v in data.items():
+                if k in self._slider_widgets:
+                    self._set_slider_value(k, v)
+
+            # --- Mettre à jour les checkbox ---
+            for k, v in data.items():
+                if k in self._checkbox_vars:
+                    self._set_checkbox_value(k, v)
+
+            # --- Mettre à jour les OptionMenu ---
+            for k, v in data.items():
+                if k in self._option_widgets:
+                    self._set_option_value(k, v)
+
+            # --- Recharger le modèle si nécessaire ---
+            from detection import reload_model
+            self.tracker.model, self.tracker.class_names = reload_model()
+
+            if config_name:
+                self._log_config(f"Config '{config_name}' appliquée et modèle rechargé ✅")
+            else:
+                self._log_config(f"Config appliquée et modèle rechargé ✅")
+
+        except Exception as e:
+            self._log_config(f"[Erreur _apply_settings] {e}")
+
+
+    def _save_new_config(self):
+        from tkinter import simpledialog
+        name = simpledialog.askstring("Nom config", "Entrez le nom de la config:")
+        if not name:
+            self._log_config("Sauvegarde annulée (pas de nom fourni).")
+            return
+        data = self._get_current_settings()
+        path = os.path.join("configs", f"{name}.json")
+        try:
+            os.makedirs("configs", exist_ok=True)
+            with open(path, "w") as f:
+                json.dump(data, f, indent=4)
+            self._refresh_config_list()
+            self.config_option.set(name)  # Sélectionner automatiquement
+            self._log_config(f"Nouvelle config '{name}' sauvegardée ✅")
+        except Exception as e:
+            self._log_config(f"[Erreur SAVE] {e}")
+
+
+
+    def _load_selected_config(self):
+        """
+        Charge la config sélectionnée dans l'OptionMenu.
+        """
+        name = self.config_option.get()
+        path = os.path.join("configs", f"{name}.json")
+        try:
+            with open(path, "r") as f:
+                data = json.load(f)
+            self._apply_settings(data, config_name=name)
+            self._log_config(f"Config '{name}' chargée 📂")
+        except Exception as e:
+            self._log_config(f"[Erreur LOAD] {e}")
+
+
+
+
+    def _refresh_config_list(self):
+        files = [f[:-5] for f in os.listdir("configs") if f.endswith(".json")]
+        if not files:
+            files = ["default"]
+        current = self.config_option.get()
+        self.config_option.configure(values=files)
+        if current in files:
+            self.config_option.set(current)
+        else:
+            self.config_option.set(files[0])
+
+
+    def _on_config_selected(self, val):
+        self._log_config(f"Selected config: {val}")
+
+    def _save_config(self):
+        name = self.config_option.get() or "default"
+        data = self._get_current_settings()
+        path = os.path.join("configs", f"{name}.json")
+        try:
+            with open(path, "w") as f:
+                json.dump(data, f, indent=4)
+            self._log_config(f"Config '{name}' sauvegardée ✅")
+            self._refresh_config_list()
+        except Exception as e:
+            self._log_config(f"[Erreur SAVE] {e}")
+
+    def _load_config(self):
+        name = self.config_option.get() or "default"
+        path = os.path.join("configs", f"{name}.json")
+        try:
+            with open(path, "r") as f:
+                data = json.load(f)
+            self._apply_settings(data)
+            self._log_config(f"Config '{name}' chargée 📂")
+        except Exception as e:
+            self._log_config(f"[Erreur LOAD] {e}")
+
+    def _log_config(self, msg):
+        self.config_log.insert("end", msg + "\n")
+        self.config_log.see("end")
 
     # ----------------------- UI BUILDERS -----------------------
     def _build_general_tab(self):
@@ -410,28 +626,54 @@ class ViewerApp(ctk.CTk):
         ctk.CTkOptionMenu(self.tab_general, values=["Dark", "Light"], command=self._on_appearance_selected).pack(pady=5, fill="x")
 
         ctk.CTkLabel(self.tab_general, text="Mode").pack(pady=5)
-        ctk.CTkOptionMenu(self.tab_general, values=["Normal", "Silent"], command=self._on_mode_selected).pack(pady=5, fill="x")
+        self.mode_option = ctk.CTkOptionMenu(self.tab_general, values=["Normal", "Silent"], command=self._on_mode_selected)
+        self.mode_option.pack(pady=5, fill="x")
+        self._option_widgets["mode"] = self.mode_option
 
         ctk.CTkLabel(self.tab_general, text="Couleur").pack(pady=5)
-        ctk.CTkOptionMenu(self.tab_general, values=["yellow", "purple"], command=self._on_color_selected).pack(pady=5, fill="x")
+        self.color_option = ctk.CTkOptionMenu(self.tab_general, values=["yellow", "purple"], command=self._on_color_selected)
+        self.color_option.pack(pady=5, fill="x")
+        self._option_widgets["color"] = self.color_option
 
     def _build_aimbot_tab(self):
-        self._add_slider_with_label(self.tab_aimbot, "X Speed", 0.1, 2000, float(getattr(config, "normal_x_speed", 0.5)), self._on_normal_x_speed_changed, is_float=True)
-        self._add_slider_with_label(self.tab_aimbot, "Y Speed", 0.1, 2000, float(getattr(config, "normal_y_speed", 0.5)), self._on_normal_y_speed_changed, is_float=True)
-        self._add_slider_with_label(self.tab_aimbot, "In-game sens", 0.1, 2000, float(getattr(config, "in_game_sens", 7)), self._on_config_in_game_sens_changed, is_float=True)
-        self._add_slider_with_label(self.tab_aimbot, "Smoothing", 1, 30, float(getattr(config, "normalsmooth", 10)), self._on_config_normal_smooth_changed, is_float=True)
-        self._add_slider_with_label(self.tab_aimbot, "Smoothing FOV", 1, 30, float(getattr(config, "normalsmoothfov", 10)), self._on_config_normal_smoothfov_changed, is_float=True)
-        self._add_slider_with_label(self.tab_aimbot, "FOV Size", 1, 1000, float(getattr(config, "fovsize", 300)), self._on_fovsize_changed, is_float=True)
+        # X Speed
+        s, l = self._add_slider_with_label(self.tab_aimbot, "X Speed", 0.1, 2000, float(getattr(config, "normal_x_speed", 0.5)), self._on_normal_x_speed_changed, is_float=True)
+        self._register_slider("normal_x_speed", s, l, 0.1, 2000, True)
+        # Y Speed
+        s, l = self._add_slider_with_label(self.tab_aimbot, "Y Speed", 0.1, 2000, float(getattr(config, "normal_y_speed", 0.5)), self._on_normal_y_speed_changed, is_float=True)
+        self._register_slider("normal_y_speed", s, l, 0.1, 2000, True)
+        # In-game sens
+        s, l = self._add_slider_with_label(self.tab_aimbot, "In-game sens", 0.1, 2000, float(getattr(config, "in_game_sens", 7)), self._on_config_in_game_sens_changed, is_float=True)
+        self._register_slider("in_game_sens", s, l, 0.1, 2000, True)
+        # Smoothing
+        s, l = self._add_slider_with_label(self.tab_aimbot, "Smoothing", 1, 30, float(getattr(config, "normalsmooth", 10)), self._on_config_normal_smooth_changed, is_float=True)
+        self._register_slider("normalsmooth", s, l, 1, 30, True)
+        # Smoothing FOV
+        s, l = self._add_slider_with_label(self.tab_aimbot, "Smoothing FOV", 1, 30, float(getattr(config, "normalsmoothfov", 10)), self._on_config_normal_smoothfov_changed, is_float=True)
+        self._register_slider("normalsmoothfov", s, l, 1, 30, True)
+        # FOV Size
+        s, l = self._add_slider_with_label(self.tab_aimbot, "FOV Size", 1, 1000, float(getattr(config, "fovsize", 300)), self._on_fovsize_changed, is_float=True)
+        self._register_slider("fovsize", s, l, 1, 1000, True)
 
+        
+
+        # Enable Aim
         self.var_enableaim = tk.BooleanVar(value=getattr(config, "enableaim", False))
         ctk.CTkCheckBox(self.tab_aimbot, text="Enable Aim", variable=self.var_enableaim, command=self._on_enableaim_changed).pack(pady=6, anchor="w")
+        self._checkbox_vars["enableaim"] = self.var_enableaim
 
     def _build_tb_tab(self):
-        self._add_slider_with_label(self.tab_tb, "TB FOV Size", 1, 300, float(getattr(config, "tbfovsize", 70)), self._on_tbfovsize_changed, is_float=True)
-        self._add_slider_with_label(self.tab_tb, "TB Delay", 0.0, 1.0, float(getattr(config, "tbdelay", 0.08)), self._on_tbdelay_changed, is_float=True)
+        # TB FOV Size
+        s, l = self._add_slider_with_label(self.tab_tb, "TB FOV Size", 1, 300, float(getattr(config, "tbfovsize", 70)), self._on_tbfovsize_changed, is_float=True)
+        self._register_slider("tbfovsize", s, l, 1, 300, True)
+        # TB Delay
+        s, l = self._add_slider_with_label(self.tab_tb, "TB Delay", 0.0, 1.0, float(getattr(config, "tbdelay", 0.08)), self._on_tbdelay_changed, is_float=True)
+        self._register_slider("tbdelay", s, l, 0.0, 1.0, True)
 
+        # Enable TB
         self.var_enabletb = tk.BooleanVar(value=getattr(config, "enabletb", False))
         ctk.CTkCheckBox(self.tab_tb, text="Enable TB", variable=self.var_enabletb, command=self._on_enabletb_changed).pack(pady=6, anchor="w")
+        self._checkbox_vars["enabletb"] = self.var_enabletb
 
     # Generic slider helper (parent-aware)
     def _add_slider_with_label(self, parent, text, min_val, max_val, init_val, command, is_float=False):
@@ -446,6 +688,7 @@ class ViewerApp(ctk.CTk):
                                command=lambda v: self._slider_callback(v, label, text, command, is_float))
         slider.set(init_val)
         slider.pack(side="right", fill="x", expand=True)
+        return slider, label
 
     def _slider_callback(self, value, label, text, command, is_float):
         val = float(value) if is_float else int(round(value))
@@ -506,6 +749,7 @@ class ViewerApp(ctk.CTk):
 
     def _on_mode_selected(self, val):
         config.mode = val
+        self.tracker.mode = val
 
     # ----------------------- NDI helpers -----------------------
     def _process_source_updates(self):
