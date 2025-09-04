@@ -49,7 +49,7 @@ This will automatically activate your virtual environment and start the .
 ```
 CUPSY_CB/
 ├─ src/
-│  ├─ CUPSY_CB.py
+│  ├─ main.py
 │  ├─ config.py
 │  ├─ mouse.py
 │  ├─ detection.py
