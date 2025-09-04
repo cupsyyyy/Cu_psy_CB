@@ -1,5 +1,3 @@
-import os
-import json
 
 class Config:
     def __init__(self):
@@ -9,7 +7,6 @@ class Config:
         self.enabletb = False
         self.offsetX = -2
         self.offsetY = 5
-        self.rage_mode = False
 
         self.color = "purple"
 
@@ -18,8 +15,6 @@ class Config:
         self.selected_mouse_button = 1
         self.selected_tb_btn = 1
         self.selected_2_tb = 2
-        self.makcu_connected = False
-        self.makcu_status_msg = "Disconnected"  # Updated to reflect device type
         self.in_game_sens = 0.235
         self.mouse_dpi = 800
         # --- Aimbot Mode ---
