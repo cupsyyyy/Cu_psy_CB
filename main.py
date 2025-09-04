@@ -42,7 +42,7 @@ class AimTracker:
         self.tbfovsize = float(getattr(config, "tbfovsize", 70))
         self.tbdelay = float(getattr(config, "tbdelay", 0.08))
         self.last_tb_click_time = 0.0
-        self.rage_mode = bool(getattr(config, "rage_mode", False))
+
         self.in_game_sens = float(getattr(config, "in_game_sens", 7))
         self.color = getattr(config, "color", "yellow")
         self.mode = getattr(config, "mode", "Normal")
@@ -480,7 +480,6 @@ class ViewerApp(ctk.CTk):
             "fovsize": getattr(config, "fovsize", 300),
             "tbfovsize": getattr(config, "tbfovsize", 70),
             "tbdelay": getattr(config, "tbdelay", 0.08),
-            "rage_mode": getattr(config, "rage_mode", False),
             "in_game_sens": getattr(config, "in_game_sens", 7),
             "color": getattr(config, "color", "yellow"),
             "mode": getattr(config, "mode", "Normal"),
@@ -791,10 +790,7 @@ class ViewerApp(ctk.CTk):
         except Exception as e:
             self.status_label.configure(text=f"Failed to connect: {e}", text_color="red")
 
-    def _toggle_rage(self):
-        self.tracker.rage_mode = not self.tracker.rage_mode
-        state = "ON" if self.tracker.rage_mode else "OFF"
-        self.status_label.configure(text=f"Rage mode {state}")
+
 
     def _update_connection_status_loop(self):
         try:
