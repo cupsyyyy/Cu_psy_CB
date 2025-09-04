@@ -288,7 +288,7 @@ class AimTracker:
 
             # Triggerbot
             try:
-                if getattr(config, "enabletb", False) and is_button_pressed(getattr(config, "selected_tb_btn", None)) or is_button_prseessed(getattr(config, "selected_2_tb", None)):
+                if getattr(config, "enabletb", False) and is_button_pressed(getattr(config, "selected_tb_btn", None)) or is_button_pressed(getattr(config, "selected_2_tb", None)):
                     cx0, cy0 = int(frame.xres // 2), int(frame.yres // 2)
                     r = int(getattr(config, "tbfovsize", self.tbfovsize))
                     x1, y1 = max(cx0 - r, 0), max(cy0 - r, 0)
@@ -626,7 +626,7 @@ class ViewerApp(ctk.CTk):
         ctk.CTkOptionMenu(self.tab_general, values=["Dark", "Light"], command=self._on_appearance_selected).pack(pady=5, fill="x")
 
         ctk.CTkLabel(self.tab_general, text="Mode").pack(pady=5)
-        self.mode_option = ctk.CTkOptionMenu(self.tab_general, values=["Normal" """, "Silent" """], command=self._on_mode_selected)
+        self.mode_option = ctk.CTkOptionMenu(self.tab_general, values=["Normal"], command=self._on_mode_selected)
         self.mode_option.pack(pady=5, fill="x")
         self._option_widgets["mode"] = self.mode_option
 
