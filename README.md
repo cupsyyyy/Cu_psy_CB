@@ -30,28 +30,17 @@ git clone https://github.com/YOUR_USERNAME/Eventuri-AI.git
 cd Eventuri-AI
 ```
 
-2. **Start the run.bat**
 
 
 ## Usage
 
-### Run via Python:
 
-```bash
-python src/Eventuri-AI.py
-```
 
 ### Run via Windows batch script (`start.bat`):
 
-```bat
-@echo off
-cd /d "%~dp0src"
-call venv\Scripts\activate
-python Eventuri-AI.py
-pause
-```
 
-This will automatically activate your virtual environment and start the bot.
+
+This will automatically activate your virtual environment and start the CB.
 
 ---
 
