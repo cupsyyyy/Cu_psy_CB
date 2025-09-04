@@ -1,6 +1,6 @@
-# Eventuri-AI
+# CUPSY_CB
 
-**Eventuri-AI** is a **colorbot with triggerbot** that integrates with **OBS NDI** to perform real-time detection and automation.
+**CUPSY_CB** is a **colorbot with triggerbot** that integrates with **OBS NDI** to perform real-time detection and automation.
 
 ---
 
@@ -26,8 +26,8 @@
 1. **Clone the repository:**
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Eventuri-AI.git
-cd Eventuri-AI
+git clone https://github.com/cupsyyyy/Cu_psy_CB.git
+cd CUPSY_CB
 ```
 
 
@@ -40,16 +40,16 @@ cd Eventuri-AI
 
 
 
-This will automatically activate your virtual environment and start the CB.
+This will automatically activate your virtual environment and start the .
 
 ---
 
 ## Project Structure
 
 ```
-Eventuri-AI/
+CUPSY_CB/
 ├─ src/
-│  ├─ Eventuri-AI.py
+│  ├─ CUPSY_CB.py
 │  ├─ config.py
 │  ├─ mouse.py
 │  ├─ detection.py
