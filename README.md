@@ -30,30 +30,9 @@ git clone https://github.com/YOUR_USERNAME/Eventuri-AI.git
 cd Eventuri-AI
 ```
 
-2. **Create a virtual environment:**
+2. **Start the run.bat**
 
-```bash
-python -m venv venv
-```
 
-3. **Activate the virtual environment:**
-
-- **Windows:**
-```bat
-venv\Scripts\activate
-```
-- **Linux / macOS:**
-```bash
-source venv/bin/activate
-```
-
-4. **Install dependencies:**
-
-```bash
-pip install -r requirements.txt
-```
-
----
 
 ## Configuration
 
