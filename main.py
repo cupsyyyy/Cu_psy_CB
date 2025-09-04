@@ -619,7 +619,7 @@ class ViewerApp(ctk.CTk):
 
         ctk.CTkButton(self.tab_general, text="Refresh NDI Sources", command=self._refresh_sources).pack(pady=5, fill="x")
         ctk.CTkButton(self.tab_general, text="Connect to Source", command=self._connect_to_selected).pack(pady=5, fill="x")
-        ctk.CTkButton(self.tab_general, text="Toggle Rage Mode", command=self._toggle_rage).pack(pady=5, fill="x")
+        #ctk.CTkButton(self.tab_general, text="Toggle Rage Mode", command=self._toggle_rage).pack(pady=5, fill="x")
 
         ctk.CTkLabel(self.tab_general, text="Apparence").pack(pady=5)
         ctk.CTkOptionMenu(self.tab_general, values=["Dark", "Light"], command=self._on_appearance_selected).pack(pady=5, fill="x")
