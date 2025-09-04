@@ -1,10 +1,8 @@
 import cv2
 import numpy as np
-import torch
 from config import config
 
 # ------------------ Config GPU ------------------
-DEVICE = 0 if torch.cuda.is_available() else "cpu"
 
 # ------------------ Modèle HSV ------------------
 _model = None
