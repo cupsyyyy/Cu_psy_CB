@@ -34,13 +34,11 @@ cd CUPSY_CB
 
 ## Usage
 
-
-
 ### Run via Windows batch script (`start.bat`):
 
 
 
-This will automatically activate your virtual environment and start the .
+This will automatically activate your virtual environment and start the CB!
 
 ---
 
