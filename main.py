@@ -452,6 +452,11 @@ class ViewerApp(ctk.CTk):
         if menu is not None and value_str is not None:
             menu.set(str(value_str))
 
+    def _set_btn_option_value(self, key, value_str):
+        menu = self._option_widgets.get(key)
+        if menu is not None and value_str is not None:
+            menu.set(str(value_str))
+
     # -------------- Tab Config --------------
     def _build_config_tab(self):
         os.makedirs("configs", exist_ok=True)
@@ -529,6 +534,17 @@ class ViewerApp(ctk.CTk):
             for k, v in data.items():
                 if k in self._option_widgets:
                     self._set_option_value(k, v)
+
+            # --- Mettre à jour les OptionMenu ---
+            for k, v in data.items():
+                if k == "selected_mouse_button" or k == "selected_tb_btn":
+
+                    if k in self._option_widgets:
+                        print(k, v)
+                        
+                        v = BUTTONS[v]
+                        print(v)
+                        self._set_btn_option_value(k, v)
 
             # --- Recharger le modèle si nécessaire ---
             from detection import reload_model
@@ -681,7 +697,7 @@ class ViewerApp(ctk.CTk):
             command=self._on_aimbot_button_selected
         )
         self.aimbot_button_option.pack(pady=5, fill="x")
-        self._option_widgets["aimbot_button"] = self.aimbot_button_option
+        self._option_widgets["selected_mouse_button"] = self.aimbot_button_option
 
 
     def _build_tb_tab(self):
@@ -704,7 +720,7 @@ class ViewerApp(ctk.CTk):
             command=self._on_tb_button_selected
         )
         self.tb_button_option.pack(pady=5, fill="x")
-        self._option_widgets["tb_button"] = self.tb_button_option
+        self._option_widgets["selected_tb_btn"] = self.tb_button_option
 
 
     # Generic slider helper (parent-aware)
@@ -759,6 +775,7 @@ class ViewerApp(ctk.CTk):
         for key, name in BUTTONS.items():
             if name == val:
                 config.selected_tb_btn = key
+                #self.tracker.selected_tb_btn = val
                 break
         self._log_config(f"Triggerbot button set to {val} ({key})")
 
