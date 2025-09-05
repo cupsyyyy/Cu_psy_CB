@@ -225,11 +225,6 @@ class Mouse:
                 Mouse._listener.start()
             self._inited = True
 
-    def test_move(self):
-        if is_connected:
-            with makcu_lock:
-                makcu.write(b"km.move(100,100)\r")
-                makcu.flush()
 
     def move(self, x: float, y: float):
         if not is_connected:
