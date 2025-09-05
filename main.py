@@ -20,6 +20,14 @@ from mouse import Mouse, is_button_pressed
 from detection import load_model, perform_detection
 
 
+BUTTONS = {
+    0: 'Left Mouse Button',
+    1: 'Right Mouse Button',
+    2: 'Middle Mouse Button',
+    3: 'Side Mouse 4 Button',
+    4: 'Side Mouse 5 Button'
+}
+
 def threaded_silent_move(controller, dx, dy):
     """Petit move-restore pour le mode Silent."""
     controller.move(dx, dy)
@@ -46,6 +54,8 @@ class AimTracker:
         self.in_game_sens = float(getattr(config, "in_game_sens", 7))
         self.color = getattr(config, "color", "yellow")
         self.mode = getattr(config, "mode", "Normal")
+        self.selected_mouse_button = getattr(config, "selected_mouse_button", 3),
+        self.selected_tb_btn= getattr(config, "selected_tb_btn", 3)
         self.max_speed = float(getattr(config, "max_speed", 1000.0))
 
         self.controller = Mouse()
@@ -446,14 +456,14 @@ class ViewerApp(ctk.CTk):
     def _build_config_tab(self):
         os.makedirs("configs", exist_ok=True)
 
-        ctk.CTkLabel(self.tab_config, text="Choisir une config:").pack(pady=5, anchor="w")
+        ctk.CTkLabel(self.tab_config, text="Choose a config:").pack(pady=5, anchor="w")
 
         self.config_option = ctk.CTkOptionMenu(self.tab_config, values=[], command=self._on_config_selected)
         self.config_option.pack(pady=5, fill="x")
 
-        ctk.CTkButton(self.tab_config, text="💾 Sauvegarder", command=self._save_config).pack(pady=10, fill="x")
-        ctk.CTkButton(self.tab_config, text="💾 Nouvelle config", command=self._save_new_config).pack(pady=5, fill="x")
-        ctk.CTkButton(self.tab_config, text="📂 Charger config", command=self._load_selected_config).pack(pady=5, fill="x")
+        ctk.CTkButton(self.tab_config, text="💾 Save", command=self._save_config).pack(pady=10, fill="x")
+        ctk.CTkButton(self.tab_config, text="💾 New Config", command=self._save_new_config).pack(pady=5, fill="x")
+        ctk.CTkButton(self.tab_config, text="📂 Load config", command=self._load_selected_config).pack(pady=5, fill="x")
 
 
         self.config_log = ctk.CTkTextbox(self.tab_config, height=120)
@@ -485,6 +495,9 @@ class ViewerApp(ctk.CTk):
             "mode": getattr(config, "mode", "Normal"),
             "enableaim": getattr(config, "enableaim", False),
             "enabletb": getattr(config, "enabletb", False),
+            "selected_mouse_button": getattr(config, "selected_mouse_button", 3),
+            "selected_tb_btn": getattr(config, "selected_tb_btn", 3)
+
         }
 
     def _apply_settings(self, data, config_name=None):
@@ -522,9 +535,9 @@ class ViewerApp(ctk.CTk):
             self.tracker.model, self.tracker.class_names = reload_model()
 
             if config_name:
-                self._log_config(f"Config '{config_name}' appliquée et modèle rechargé ✅")
+                self._log_config(f"Config '{config_name}' applied and model reloaded ✅")
             else:
-                self._log_config(f"Config appliquée et modèle rechargé ✅")
+                self._log_config(f"Config applied and model reloaded ✅")
 
         except Exception as e:
             self._log_config(f"[Erreur _apply_settings] {e}")
@@ -532,9 +545,9 @@ class ViewerApp(ctk.CTk):
 
     def _save_new_config(self):
         from tkinter import simpledialog
-        name = simpledialog.askstring("Nom config", "Entrez le nom de la config:")
+        name = simpledialog.askstring("Config name", "Enter the config name:")
         if not name:
-            self._log_config("Sauvegarde annulée (pas de nom fourni).")
+            self._log_config("Cancelled save (pas de nom fourni).")
             return
         data = self._get_current_settings()
         path = os.path.join("configs", f"{name}.json")
@@ -544,7 +557,7 @@ class ViewerApp(ctk.CTk):
                 json.dump(data, f, indent=4)
             self._refresh_config_list()
             self.config_option.set(name)  # Sélectionner automatiquement
-            self._log_config(f"Nouvelle config '{name}' sauvegardée ✅")
+            self._log_config(f"New config'{name}' saved ✅")
         except Exception as e:
             self._log_config(f"[Erreur SAVE] {e}")
 
@@ -560,7 +573,7 @@ class ViewerApp(ctk.CTk):
             with open(path, "r") as f:
                 data = json.load(f)
             self._apply_settings(data, config_name=name)
-            self._log_config(f"Config '{name}' chargée 📂")
+            self._log_config(f"Config '{name}' loaded 📂")
         except Exception as e:
             self._log_config(f"[Erreur LOAD] {e}")
 
@@ -601,7 +614,7 @@ class ViewerApp(ctk.CTk):
             with open(path, "r") as f:
                 data = json.load(f)
             self._apply_settings(data)
-            self._log_config(f"Config '{name}' chargée 📂")
+            self._log_config(f"Config '{name}' loaded 📂")
         except Exception as e:
             self._log_config(f"[Erreur LOAD] {e}")
 
@@ -661,6 +674,16 @@ class ViewerApp(ctk.CTk):
         ctk.CTkCheckBox(self.tab_aimbot, text="Enable Aim", variable=self.var_enableaim, command=self._on_enableaim_changed).pack(pady=6, anchor="w")
         self._checkbox_vars["enableaim"] = self.var_enableaim
 
+        ctk.CTkLabel(self.tab_aimbot, text="Aimbot Button").pack(pady=5, anchor="w")
+        self.aimbot_button_option = ctk.CTkOptionMenu(
+            self.tab_aimbot,
+            values=list(BUTTONS.values()),
+            command=self._on_aimbot_button_selected
+        )
+        self.aimbot_button_option.pack(pady=5, fill="x")
+        self._option_widgets["aimbot_button"] = self.aimbot_button_option
+
+
     def _build_tb_tab(self):
         # TB FOV Size
         s, l = self._add_slider_with_label(self.tab_tb, "TB FOV Size", 1, 300, float(getattr(config, "tbfovsize", 70)), self._on_tbfovsize_changed, is_float=True)
@@ -673,6 +696,16 @@ class ViewerApp(ctk.CTk):
         self.var_enabletb = tk.BooleanVar(value=getattr(config, "enabletb", False))
         ctk.CTkCheckBox(self.tab_tb, text="Enable TB", variable=self.var_enabletb, command=self._on_enabletb_changed).pack(pady=6, anchor="w")
         self._checkbox_vars["enabletb"] = self.var_enabletb
+
+        ctk.CTkLabel(self.tab_tb, text="Triggerbot Button").pack(pady=5, anchor="w")
+        self.tb_button_option = ctk.CTkOptionMenu(
+            self.tab_tb,
+            values=list(BUTTONS.values()),
+            command=self._on_tb_button_selected
+        )
+        self.tb_button_option.pack(pady=5, fill="x")
+        self._option_widgets["tb_button"] = self.tb_button_option
+
 
     # Generic slider helper (parent-aware)
     def _add_slider_with_label(self, parent, text, min_val, max_val, init_val, command, is_float=False):
@@ -714,6 +747,21 @@ class ViewerApp(ctk.CTk):
     def _on_config_normal_smoothfov_changed(self, val):
         config.normalsmoothfov = val
         self.tracker.normalsmoothfov = val
+
+    def _on_aimbot_button_selected(self, val):
+        for key, name in BUTTONS.items():
+            if name == val:
+                config.selected_mouse_button = key
+                break
+        self._log_config(f"Aimbot button set to {val} ({key})")
+
+    def _on_tb_button_selected(self, val):
+        for key, name in BUTTONS.items():
+            if name == val:
+                config.selected_tb_btn = key
+                break
+        self._log_config(f"Triggerbot button set to {val} ({key})")
+
 
     def _on_fovsize_changed(self, val):
         config.fovsize = val
