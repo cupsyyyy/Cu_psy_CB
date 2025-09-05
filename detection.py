@@ -21,7 +21,7 @@ def load_model(model_path=None):
 
     try:
         print("Loading HSV parameters...")
-        yellow = [28, 38, 200, 53, 255, 255]
+        yellow = [30, 125, 150, 30, 255, 255]
         purple = [144, 106, 172, 160, 255, 255]
 
         if config.color == "yellow":
