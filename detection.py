@@ -106,12 +106,11 @@ def perform_detection(model, image):
     mask = cv2.inRange(hsv_img, model[0], model[1])
 
     # Nettoyage morphologique
-    kernel = np.ones((30, 10), np.uint8)
+    kernel = np.ones((30, 15), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
     mask = cv2.dilate(mask, kernel, iterations=1)
 
-    cv2.imshow("MASK", mask)
-    cv2.waitKey(1)
+   
 
     # Contours et rectangles
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -129,7 +128,7 @@ def perform_detection(model, image):
 
     merged_rects, merged_centers = merge_close_rects(rects, centers)
 
-    return [{"class": "player", "bbox": r, "confidence": 1.0} for r in merged_rects]
+    return [{"class": "player", "bbox": r, "confidence": 1.0} for r in merged_rects], mask
 
 # ------------------ Helpers ------------------
 def get_class_names():
