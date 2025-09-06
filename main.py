@@ -200,8 +200,8 @@ class AimTracker:
         height = y2 - y1
 
         # Crop léger
-        top_crop_factor = 0.05
-        side_crop_factor = 0.05
+        top_crop_factor = 0.10
+        side_crop_factor = 0.10
 
         effective_y1 = y1 + height * top_crop_factor
         effective_height = height * (1 - top_crop_factor)
@@ -215,7 +215,7 @@ class AimTracker:
         heady_base = effective_y1 + effective_height * (offsetY / 100)
 
         pixel_marginx = 40
-        pixel_marginy = 20
+        pixel_marginy = 10
 
         x1_roi = int(max(headx_base - pixel_marginx, 0))
         y1_roi = int(max(heady_base - pixel_marginy, 0))
