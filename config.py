@@ -5,8 +5,8 @@ class Config:
 
         self.enableaim = True
         self.enabletb = False
-        self.offsetX = 0
-        self.offsetY = 5
+        self.offsetX = -2
+        self.offsetY = 3
 
         self.color = "purple"
 
@@ -14,7 +14,7 @@ class Config:
         # --- Mouse / MAKCU ---
         self.selected_mouse_button = 1
         self.selected_tb_btn = 1
-        #self.selected_2_tb = 2
+        self.selected_2_tb = 2
         self.in_game_sens = 0.235
         self.mouse_dpi = 800
         # --- Aimbot Mode ---
