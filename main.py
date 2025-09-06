@@ -143,7 +143,9 @@ class AimTracker:
         bgr_img = img[:, :, [2, 1, 0]].copy()
 
         try:
-            detection_results = perform_detection(self.model, bgr_img)
+            detection_results, mask = perform_detection(self.model, bgr_img)
+            cv2.imshow("MASK", mask)
+            cv2.waitKey(1)
         except Exception as e:
             print("[perform_detection error]", e)
             detection_results = []
@@ -165,8 +167,9 @@ class AimTracker:
                         self._draw_head_bbox(bgr_img, head_cx, head_cy)
                         d = math.hypot(head_cx - frame.xres / 2.0, head_cy - frame.yres / 2.0)
                         targets.append((head_cx, head_cy, d))
-                except Exception:
-                    continue
+                except Exception as e:
+                    print("Erreur dans _estimate_head_positions:", e)
+
 
         # FOVs une fois par frame
         try:
@@ -212,7 +215,7 @@ class AimTracker:
         heady_base = effective_y1 + effective_height * (offsetY / 100)
 
         pixel_marginx = 40
-        pixel_marginy = 10
+        pixel_marginy = 20
 
         x1_roi = int(max(headx_base - pixel_marginx, 0))
         y1_roi = int(max(heady_base - pixel_marginy, 0))
@@ -225,7 +228,7 @@ class AimTracker:
         results = []
         detections = []
         try:
-            detections = perform_detection(self.model, roi)
+            detections, mask = perform_detection(self.model, roi)
         except Exception as e:
             print("[perform_detection ROI error]", e)
 
@@ -306,7 +309,7 @@ class AimTracker:
                     roi = img[y1:y2, x1:x2]
 
                     debug_roi = roi.copy()
-                    detections = perform_detection(self.model, debug_roi)
+                    detections, mask = perform_detection(self.model, debug_roi)
                     if detections:
                         for det in detections:
                             x, y, w, h = det["bbox"]
