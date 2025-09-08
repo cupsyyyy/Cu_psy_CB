@@ -177,11 +177,10 @@ class AimTracker:
         except Exception:
             pass
 
-        if targets:
-            try:
-                self._aim_and_move(targets, frame, bgr_img)
-            except Exception as e:
-                print("[Aim error]", e)
+        try:
+            self._aim_and_move(targets, frame, bgr_img)
+        except Exception as e:
+            print("[Aim error]", e)
 
         try:
             cv2.imshow("Detection", bgr_img)
@@ -257,23 +256,28 @@ class AimTracker:
         cv2.putText(img, f"Body {conf:.2f}", (int(x1), int(y1) - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
 
     def _aim_and_move(self, targets, frame, img):
+        
         aim_enabled = getattr(config, "enableaim", False)
         selected_btn = getattr(config, "selected_mouse_button", None)
 
-        best_target = min(targets, key=lambda t: t[2])
-        cx, cy, _ = best_target
         center_x = frame.xres / 2.0
         center_y = frame.yres / 2.0
-        distance_to_center = math.hypot(cx - center_x, cy - center_y)
-        if distance_to_center > float(getattr(config, 'fovsize', self.fovsize)):
-            return
+        # --- Si pas de target, on saute l'aimbot mais on continue triggerbot ---
+        if not targets:
+            cx, cy, distance_to_center = center_x, center_y, float("inf")
+        else:
+            # Sélectionne la meilleure target
+            best_target = min(targets, key=lambda t: t[2])
+            cx, cy, _ = best_target
+            distance_to_center = math.hypot(cx - center_x, cy - center_y)
+            if distance_to_center > float(getattr(config, 'fovsize', self.fovsize)):
+                return
 
         dx = cx - center_x
         dy = cy - center_y
 
         sens = float(getattr(config, "in_game_sens", self.in_game_sens))
         dpi = float(getattr(config, "mouse_dpi", self.mouse_dpi))
-       
 
         cm_per_rev_base = 54.54
         cm_per_rev = cm_per_rev_base / max(sens, 0.01)
@@ -286,9 +290,13 @@ class AimTracker:
 
         mode = getattr(config, "mode", "Normal")
         if mode == "Normal":
+           
             try:
-                if aim_enabled and selected_btn is not None and is_button_pressed(selected_btn):
+                
+                # --- AIMBOT ---
+                if aim_enabled and selected_btn is not None and is_button_pressed(selected_btn) and targets:
                     if distance_to_center < float(getattr(config, "normalsmoothfov", self.normalsmoothfov)):
+                       
                         ndx *= float(getattr(config, "normal_x_speed", self.normal_x_speed)) / max(float(getattr(config, "normalsmooth", self.normalsmooth)), 0.01)
                         ndy *= float(getattr(config, "normal_y_speed", self.normal_y_speed)) / max(float(getattr(config, "normalsmooth", self.normalsmooth)), 0.01)
                     else:
@@ -299,41 +307,59 @@ class AimTracker:
             except Exception:
                 pass
 
-            # Triggerbot
             try:
+                # --- Paramètres triggerbot ---
                 if getattr(config, "enabletb", False) and is_button_pressed(getattr(config, "selected_tb_btn", None)) or is_button_pressed(getattr(config, "selected_2_tb", None)):
+
+                    # Centre de l'écran
                     cx0, cy0 = int(frame.xres // 2), int(frame.yres // 2)
-                    r = int(getattr(config, "tbfovsize", self.tbfovsize))
-                    x1, y1 = max(cx0 - r, 0), max(cy0 - r, 0)
-                    x2, y2 = min(cx0 + r, frame.xres), min(cy0 + r, frame.yres)
+                    ROI_SIZE = 5  # petit carré autour du centre
+                    x1, y1 = max(cx0 - ROI_SIZE, 0), max(cy0 - ROI_SIZE, 0)
+                    x2, y2 = min(cx0 + ROI_SIZE, img.shape[1]), min(cy0 + ROI_SIZE, img.shape[0])
                     roi = img[y1:y2, x1:x2]
 
-                    debug_roi = roi.copy()
-                    detections, mask = perform_detection(self.model, debug_roi)
-                    if detections:
-                        for det in detections:
-                            x, y, w, h = det["bbox"]
-                            cv2.rectangle(debug_roi, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                    try:
-                        cv2.imshow("Triggerbot ROI", debug_roi)
-                        cv2.waitKey(1)
-                    except Exception:
-                        pass
+                    if roi.size == 0:
+                        return  # sécurité
 
-                    if detections or distance_to_center < float(getattr(config, "tbfovsize", self.tbfovsize)):
+                    # Conversion HSV (assure-toi que img est BGR)
+                    hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+
+                    # Plage HSV pour le violet (ajuste si nécessaire)
+                    
+                    HSV_UPPER = self.model[1]
+                    HSV_LOWER = self.model[0]
+                    
+                    mask = cv2.inRange(hsv, HSV_LOWER, HSV_UPPER)
+
+                    detected = cv2.countNonZero(mask) > 0
+                    #print(f"ROI shape: {roi.shape}, NonZero pixels: {cv2.countNonZero(mask)}")
+
+                    # Debug affichage
+                    cv2.imshow("ROI", roi)
+                    cv2.imshow("Mask", mask)
+                    cv2.waitKey(1)
+
+                    # Texte sur l'image principale
+                    if detected:
+                        cv2.putText(img, "PURPLE DETECTED", (10, 30),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                         now = time.time()
                         if now - self.last_tb_click_time >= float(getattr(config, "tbdelay", self.tbdelay)):
                             self.controller.click()
                             self.last_tb_click_time = now
+
             except Exception as e:
                 print("[Triggerbot error]", e)
 
+
         elif mode == "Silent":
-            dx_raw = int(dx)
-            dy_raw = int(dy)
-            dx_raw *= self.normal_x_speed
-            dy_raw *= self.normal_y_speed
-            threading.Thread(target=threaded_silent_move, args=(self.controller, dx_raw, dy_raw), daemon=True).start()
+            if targets:  # évite crash si pas de target
+                dx_raw = int(dx)
+                dy_raw = int(dy)
+                dx_raw *= self.normal_x_speed
+                dy_raw *= self.normal_y_speed
+                threading.Thread(target=threaded_silent_move, args=(self.controller, dx_raw, dy_raw), daemon=True).start()
+
 
 
 class ViewerApp(ctk.CTk):
