@@ -94,6 +94,30 @@ def merge_close_rects(rects, centers, dist_threshold=250):
 
     return merged, merged_centers
 
+def triggerbot_detect(model, roi):
+    """
+    Détecte si la couleur est présente dans le ROI.
+    Renvoie True si au moins un pixel détecté, False sinon.
+
+    Params:
+        model : tuple (HSV_MIN, HSV_MAX)
+        roi : image BGR de la zone à analyser
+    """
+    if model is None or roi is None:
+        return False
+
+    # Conversion HSV et masque
+    hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv_roi, model[0], model[1])
+
+    # Nettoyage morphologique léger
+    kernel = np.ones((3, 3), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+    # Retourne True si au moins un pixel détecté
+    return np.any(mask > 0)
+
+
 # ------------------ Détection couleur ------------------
 def perform_detection(model, image):
     """
